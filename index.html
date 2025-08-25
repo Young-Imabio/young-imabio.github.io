@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Young ImaBio</title>
+  <meta name="description" content="Young ImaBio — student org for bioimaging in France"/>
+  <link rel="icon" href="/uploads/favicon.ico"/>
+  <style>
+    :root{--bg:#0b1020;--panel:#11162b;--text:#e8ebff;--muted:#a9b1d6;--brand:#6ee7ff;--brand2:#8b5cf6;--accent:#22d3ee;--maxw:1100px;--radius:18px;--shadow:0 10px 30px rgba(0,0,0,.25)}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font:16px/1.65 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 80% -10%,rgba(139,92,246,.15),transparent),var(--bg);color:var(--text)}
+    a{color:var(--brand);text-decoration:none} a:hover{text-decoration:underline}
+    .container{max-width:var(--maxw);margin:0 auto;padding:0 1rem}
+    header{position:sticky;top:0;z-index:50;backdrop-filter:saturate(1.3) blur(8px)}
+    .nav{display:flex;align-items:center;gap:1rem;padding:.8rem 0}
+    .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:var(--shadow)}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:800}
+    .grow{margin-left:auto}
+    .menu{display:flex;gap:1rem}
+    .hero{padding:4rem 0 2.5rem}
+    .badge{display:inline-block;padding:.25rem .55rem;font-size:.8rem;border:1px solid rgba(255,255,255,.18);border-radius:999px;color:var(--muted)}
+    h1{font-size:clamp(2rem,4vw,3rem);line-height:1.15;margin:.6rem 0}
+    .lead{color:var(--muted);max-width:60ch}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;background:linear-gradient(135deg,var(--accent),var(--brand2));color:#001014;font-weight:800;border:none;padding:.75rem 1rem;border-radius:999px;box-shadow:var(--shadow)}
+    section{padding:2.2rem 0}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .events{display:grid;grid-template-columns:repeat(12,1fr);gap:1rem}
+    .event{grid-column:span 4;padding:1rem} .event h3{margin:.2rem 0 .4rem;font-size:1.05rem} .meta{color:var(--muted);font-size:.92rem}
+    @media (max-width:900px){.event{grid-column:span 6}} @media (max-width:600px){.event{grid-column:span 12}}
+    .team{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+    .member{padding:1rem;display:flex;gap:.9rem} .avatar{width:60px;height:60px;border-radius:50%;background:#1b2242;border:1px solid rgba(255,255,255,.15);object-fit:cover}
+    footer{padding:2rem 0 4rem;color:var(--muted)} .footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:center}
+    @media (max-width:700px){.footer-grid{grid-template-columns:1fr;text-align:center}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav" role="navigation">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="brand">Young ImaBio</span>
+      <div class="grow"></div>
+      <nav class="menu">
+        <a href="#events">Events</a>
+        <a href="#team">Team</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <span class="badge">Welcome 👋</span>
+      <h1>We connect students in bioimaging across France.</h1>
+      <p class="lead">Talks, workshops, careers & community. Built by and for students.</p>
+      <a class="btn" href="#events">See upcoming events</a>
+    </section>
+
+    <section id="events" class="container">
+      <h2>Upcoming events</h2>
+      <div id="eventsGrid" class="events"></div>
+      <div class="card" style="padding:1rem;margin-top:1rem">
+        <p>Want to propose a talk or workshop? <a href="#contact">Contact us</a>.</p>
+      </div>
+    </section>
+
+    <section id="team" class="container">
+      <h2>Team</h2>
+      <div id="teamGrid" class="team"></div>
+    </section>
+
+    <section id="contact" class="container">
+      <h2>Contact</h2>
+      <div class="card" style="padding:1rem">
+        <p>Email: <a href="mailto:org@example.com">org@example.com</a> · Instagram: <a href="#">@youngimabio</a> · LinkedIn: <a href="#">Young ImaBio</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    async function fetchJSON(path){
+      const res = await fetch(path + '?v=' + Date.now());
+      if(!res.ok) throw new Error('Failed to load ' + path);
+      return await res.json();
+    }
+    function formatDate(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+
+    function renderEvents(items){
+      const grid=document.getElementById('eventsGrid'); grid.innerHTML='';
+      items.sort((a,b)=>a.date.localeCompare(b.date));
+      const today = new Date(); today.setHours(0,0,0,0);
+      for(const e of items){
+        const inPast = new Date(e.date) < today;
+        const el=document.createElement('article'); el.className='event card';
+        el.innerHTML = \`
+          <div class="meta">\${formatDate(e.date)} · \${e.time || ''} \${e.location ? '· '+e.location : ''}</div>
+          <h3>\${e.title}</h3>
+          <p>\${e.description || ''}</p>
+          \${e.link ? \`<p><a href="\${e.link}">Details</a>\` : ''} \${inPast ? ' · <span class="meta">past</span>' : ''}\${e.link ? '</p>' : ''}
+        \`;
+        grid.appendChild(el);
+      }
+    }
+
+    function renderTeam(items){
+      const grid=document.getElementById('teamGrid'); grid.innerHTML='';
+      for(const m of items){
+        const el=document.createElement('article'); el.className='member card';
+        el.innerHTML = \`
+          \${m.photo ? '<img class="avatar" src="'+m.photo+'" alt="Photo of '+m.name+'"/>' : '<div class="avatar" aria-hidden="true"></div>'}
+          <div>
+            <h3>\${m.name}</h3>
+            <div class="meta">\${m.role || ''}</div>
+            \${m.email ? '<a href="mailto:'+m.email+'">'+m.email+'</a>' : ''}
+          </div>
+        \`;
+        grid.appendChild(el);
+      }
+    }
+
+    Promise.all([fetchJSON('/data/events.json'), fetchJSON('/data/team.json')])
+      .then(([events, team]) => { renderEvents(events); renderTeam(team); })
+      .catch(err => console.error(err));
+  </script>
+</body>
+</html>

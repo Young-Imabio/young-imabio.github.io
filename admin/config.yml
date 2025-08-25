@@ -1,0 +1,52 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "uploads"
+public_folder: "/uploads"
+
+site_url: "/"
+
+collections:
+  - name: "events"
+    label: "Events"
+    label_singular: "Event"
+    format: "json"
+    editor:
+      preview: false
+    files:
+      - name: "events"
+        label: "Events List"
+        file: "data/events.json"
+        fields:
+          - label: "Events"
+            name: "root"
+            widget: "list"
+            allow_add: true
+            fields:
+              - {label: "Title", name: "title", widget: "string"}
+              - {label: "Date (YYYY-MM-DD)", name: "date", widget: "date", format: "YYYY-MM-DD"}
+              - {label: "Time", name: "time", widget: "string", required: false}
+              - {label: "Location", name: "location", widget: "string", required: false}
+              - {label: "Description", name: "description", widget: "text", required: false}
+              - {label: "Link", name: "link", widget: "string", required: false}
+  - name: "team"
+    label: "Team"
+    label_singular: "Member"
+    format: "json"
+    editor:
+      preview: false
+    files:
+      - name: "team"
+        label: "Team List"
+        file: "data/team.json"
+        fields:
+          - label: "Members"
+            name: "root"
+            widget: "list"
+            allow_add: true
+            fields:
+              - {label: "Name", name: "name", widget: "string"}
+              - {label: "Role", name: "role", widget: "string", required: false}
+              - {label: "Email", name: "email", widget: "string", required: false}
+              - {label: "Photo", name: "photo", widget: "image", required: false}

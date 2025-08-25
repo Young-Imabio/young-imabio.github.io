@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Welcome Meetup",
+    "date": "2025-09-18",
+    "time": "18:00",
+    "location": "Campus Caf\u00e9",
+    "description": "Kickoff + lightning talks",
+    "link": ""
+  },
+  {
+    "title": "Microscopy Workshop",
+    "date": "2025-10-03",
+    "time": "14:00",
+    "location": "Lab A, Building X",
+    "description": "Hands-on STORM basics (limited seats)",
+    "link": ""
+  },
+  {
+    "title": "Careers in Biotech Panel",
+    "date": "2025-10-24",
+    "time": "17:30",
+    "location": "Auditorium B",
+    "description": "Industry Q&A with alumni",
+    "link": ""
+  }
+]

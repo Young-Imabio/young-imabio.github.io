@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Alice Martin",
+    "role": "President",
+    "email": "alice@example.com",
+    "photo": ""
+  },
+  {
+    "name": "Ben Rossi",
+    "role": "VP / Events",
+    "email": "ben@example.com",
+    "photo": ""
+  },
+  {
+    "name": "Chlo\u00e9 Dubois",
+    "role": "Partnerships",
+    "email": "chloe@example.com",
+    "photo": ""
+  },
+  {
+    "name": "David Nguyen",
+    "role": "Treasurer",
+    "email": "david@example.com",
+    "photo": ""
+  }
+]
