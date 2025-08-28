@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Events – Young ImaBio</title>
+  <meta name="description" content="Upcoming and past events by Young ImaBio."/>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <header>
+    <div class="container nav" role="navigation">
+      <span class="logo" aria-hidden="true"></span>
+      <a class="brand" href="/">Young ImaBio</a>
+      <div class="grow"></div>
+      <nav class="menu">
+        <a class="active" href="/events/">Events</a>
+        <a href="/team/">Team</a>
+        <a href="/profiles/">Profiles</a>
+        <a href="/join/">Join</a>
+        <a href="/#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h1>Events</h1>
+      <p class="lead">Talks, workshops, and meetups.</p>
+      <div id="eventsGrid" class="events"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { setYear, fetchJSON, renderEvents } from '/site.js';
+    setYear();
+    fetchJSON('/data/events.json')
+      .then(events => renderEvents(events, 'eventsGrid'))
+      .catch(console.error);
+  </script>
+</body>
+</html>

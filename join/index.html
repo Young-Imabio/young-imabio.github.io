@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Join – Young ImaBio</title>
+  <link rel="icon" href="/uploads/favicon.ico"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <style>
+    input, textarea, select { width:100%; padding:.6rem .7rem; border-radius:.6rem; border:1px solid var(--border); background:#0f1530; color:var(--text) }
+    label{ display:block; font-weight:600; margin-top:.6rem }
+  </style>
+</head>
+<body>
+<header>
+  <div class="container nav" role="navigation">
+    <span class="logo" aria-hidden="true"></span>
+    <a class="brand" href="/">Young ImaBio</a>
+    <nav class="menu">
+      <a href="/events/">Events</a>
+      <a href="/team/">Team</a>
+      <a href="/profiles/">Profiles</a>
+      <a class="active" href="/join/">Join</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section>
+    <h1>Join Young ImaBio</h1>
+    <p class="lead">Tell us about yourself. We’ll review and send you an invite link to create your account.</p>
+
+    <!-- Netlify form -->
+    <form name="join" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="card" style="padding:1rem">
+      <input type="hidden" name="form-name" value="join">
+      <p class="hidden">
+        <label>Don’t fill this out: <input name="bot-field"></label>
+      </p>
+
+      <label>Full name
+        <input type="text" name="name" required>
+      </label>
+      <label>Email (university email preferred)
+        <input type="email" name="email" required>
+      </label>
+      <label>Affiliation / Program
+        <input type="text" name="program" placeholder="e.g., PhD – Biophysics, Paris-Saclay">
+      </label>
+      <label>Brief intro / motivation
+        <textarea name="about" rows="5" required></textarea>
+      </label>
+
+      <button class="btn" type="submit" style="margin-top:.8rem">Submit request</button>
+      <p class="meta" style="margin-top:.6rem">We’ll review and get back to you by email.</p>
+    </form>
+  </section>
+</main>
+
+<footer>
+  <div class="container footer-grid">
+    <small>© <span id="year"></span> Young ImaBio</small>
+    <small style="justify-self:end">Made with ♥ by the team</small>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
