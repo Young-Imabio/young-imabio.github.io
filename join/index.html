@@ -32,7 +32,12 @@
     <p class="lead">Tell us about yourself. We’ll review and send you an invite link to create your account.</p>
 
     <!-- Netlify form -->
-    <form name="join" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="card" style="padding:1rem">
+    <form name="join"
+            method="POST"
+            action="/join/thanks/"
+            data-netlify="true"
+            netlify-honeypot="bot-field"
+            class="card" style="padding:1rem">
       <input type="hidden" name="form-name" value="join">
       <p class="hidden">
         <label>Don’t fill this out: <input name="bot-field"></label>
