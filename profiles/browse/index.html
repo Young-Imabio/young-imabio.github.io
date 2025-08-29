@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Browse Members — Young ImaBio</title>
-  <meta name="description" content="Search member profiles by role and area"/>
+  <meta name="description" content="List member profiles"/>
   <link rel="icon" href="/uploads/favicon.ico"/>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -25,37 +25,15 @@
 
   <main class="container section">
     <h1>Browse members</h1>
-    <p class="lead">Signed-in members can explore approved profiles. Filter by role and area.</p>
+    <p class="lead">Signed-in members can explore approved profiles.</p>
 
+    <!-- Shown if not signed in -->
     <div id="signedout" class="card" style="padding:1rem; display:none; max-width:740px">
       <p>You need to sign in to view member profiles.</p>
       <a class="btn" href="/profiles/">Go to sign-in</a>
     </div>
 
-    <section id="filters" class="card" style="padding:1rem; display:none; max-width:740px">
-      <form id="filter-form" onsubmit="return false" style="display:grid; gap:.6rem">
-        <label>Role
-          <select id="role" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
-            <option value="">Any</option>
-            <option value="phd">PhD</option>
-            <option value="master">Master</option>
-            <option value="post doc">Post doc</option>
-          </select>
-        </label>
-        <label>Area
-          <select id="area" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
-            <option value="">Any</option>
-            <option value="super res">super res</option>
-            <option value="deep tissue">deep tissue</option>
-          </select>
-        </label>
-        <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center">
-          <button class="btn" id="apply" type="submit">Apply</button>
-          <button class="btn" id="clear" type="button">Clear</button>
-        </div>
-      </form>
-    </section>
-
+    <!-- Results -->
     <section id="results" class="events" style="margin-top:1rem; display:none"></section>
     <div id="empty" class="meta" style="display:none; margin-top:.6rem">No profiles found.</div>
   </main>
@@ -72,7 +50,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
-    // Replace with your Firebase config
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
       authDomain: "young-imabio-c7f74.firebaseapp.com",
@@ -90,59 +68,67 @@
     document.getElementById('year').textContent = new Date().getFullYear();
 
     const signedOut = document.getElementById('signedout');
-    const filters = document.getElementById('filters');
     const results = document.getElementById('results');
     const empty = document.getElementById('empty');
 
-    function showOut(){ signedOut.style.display='block'; filters.style.display='none'; results.style.display='none'; empty.style.display='none'; }
-    function showIn(){ signedOut.style.display='none'; filters.style.display='block'; results.style.display='grid'; }
+    function showOut(){
+      signedOut.style.display='block';
+      results.style.display='none';
+      empty.style.display='none';
+    }
+    function showIn(){
+      signedOut.style.display='none';
+      results.style.display='grid';
+    }
 
     auth.onAuthStateChanged(async (user) => {
       if (!user) { showOut(); return; }
       showIn();
-      await loadProfiles(); // initial
+      await loadProfiles();
     });
 
     async function loadProfiles() {
       results.innerHTML = '';
       empty.style.display = 'none';
 
-      const role = document.getElementById('role').value;
-      const area = document.getElementById('area').value;
+      try {
+        // Simple query: only show visible + approved profiles
+        const snap = await db.collection('profiles')
+          .where('visibility', '==', true)
+          .where('approved', '==', true)
+          .limit(100)
+          .get();
 
-      let q = db.collection('profiles').where('approved', '==', true);
+        if (snap.empty) {
+          empty.style.display = 'block';
+          return;
+        }
 
-      if (role) q = q.where('role', '==', role);
-      if (area) q = q.where('areas', 'array-contains', area);
-
-      const snap = await q.limit(60).get();
-      if (snap.empty) { empty.style.display = 'block'; return; }
-
-      snap.forEach(doc => {
-        const p = doc.data();
-        const card = document.createElement('article');
-        card.className = 'card event';
-        card.innerHTML = `
-          <div class="meta">${(p.role?('#'+p.role+' ') : '')}${(p.areas||[]).map(x=>`#${x}`).join(' ')}</div>
-          <h3>${escapeHtml(p.name || 'Unnamed')}</h3>
-          <p class="meta">${escapeHtml((p.bio||'').slice(0,180))}${(p.bio||'').length>180?'…':''}</p>
-        `;
-        results.appendChild(card);
-      });
+        snap.forEach(doc => {
+          const p = doc.data();
+          const card = document.createElement('article');
+          card.className = 'card event';
+          card.innerHTML = `
+            <div class="meta">
+              ${(p.role ? ('#'+escapeHtml(p.role)+' ') : '')}
+              ${(p.areas || []).map(x => '#'+escapeHtml(x)).join(' ')}
+            </div>
+            <h3>${escapeHtml(p.name || 'Unnamed')}</h3>
+            <p class="meta">${escapeHtml((p.bio || '').slice(0,180))}${(p.bio || '').length > 180 ? '…' : ''}</p>
+          `;
+          results.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Browse query failed:', err);
+        empty.textContent = `Could not load profiles: ${err.message || err}`;
+        empty.style.display = 'block';
+      }
     }
 
-    document.getElementById('filter-form').addEventListener('submit', (e)=>{
-      e.preventDefault();
-      loadProfiles();
-    });
-    document.getElementById('clear').addEventListener('click', ()=>{
-      document.getElementById('role').value = '';
-      document.getElementById('area').value = '';
-      loadProfiles();
-    });
-
     function escapeHtml(str){
-      return String(str).replace(/[&<>\"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+      return String(str).replace(/[&<>\"']/g, s => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[s]));
     }
   </script>
 </body>
