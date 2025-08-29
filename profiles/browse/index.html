@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Browse Members — Young ImaBio</title>
+  <meta name="description" content="List member profiles"/>
+  <link rel="icon" href="/uploads/favicon.ico"/>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav" role="navigation">
+      <a class="brand" href="/"><span class="logo" aria-hidden="true"></span>Young ImaBio</a>
+      <nav class="menu">
+        <a href="/events/">Events</a>
+        <a href="/team/">Team</a>
+        <a href="/profiles/">Profiles</a>
+        <a href="/profiles/edit/">Edit</a>
+        <a class="active" href="/profiles/browse/">Browse</a>
+        <a href="/contact/">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Profile modal -->
+    <div id="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50;"></div>
+
+    <div id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
+        style="display:none; position:fixed; inset:0; z-index:51; place-items:center; padding:1rem;">
+    <article class="card" style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative">
+        <button id="modal-close" class="btn" type="button"
+                style="position:absolute; top:.6rem; right:.6rem">Close</button>
+        <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
+        <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
+        <p id="modal-bio" class="meta" style="white-space:pre-wrap"></p>
+    </article>
+    </div>
+
+
+  <main class="container section">
+    <h1>Browse members</h1>
+    <p class="lead">Signed-in members can explore approved profiles.</p>
+
+    <!-- Shown if not signed in -->
+    <div id="signedout" class="card" style="padding:1rem; display:none; max-width:740px">
+      <p>You need to sign in to view member profiles.</p>
+      <a class="btn" href="/profiles/">Go to sign-in</a>
+    </div>
+
+    <!-- Results -->
+    <section id="results" class="events" style="margin-top:1rem; display:none"></section>
+    <div id="empty" class="meta" style="display:none; margin-top:.6rem">No profiles found.</div>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
+    </div>
+  </footer>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
+      authDomain: "young-imabio-c7f74.firebaseapp.com",
+      projectId: "young-imabio-c7f74",
+      storageBucket: "young-imabio-c7f74.firebasestorage.app",
+      messagingSenderId: "257415369612",
+      appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
+      measurementId: "G-D3R7WK86QD"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const signedOut = document.getElementById('signedout');
+    const results = document.getElementById('results');
+    const empty = document.getElementById('empty');
+
+    function showOut(){
+      signedOut.style.display='block';
+      results.style.display='none';
+      empty.style.display='none';
+    }
+    function showIn(){
+      signedOut.style.display='none';
+      results.style.display='grid';
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) { showOut(); return; }
+      showIn();
+      await loadProfiles();
+    });
+
+    async function loadProfiles() {
+    results.innerHTML = '';
+    empty.style.display = 'none';
+
+    try {
+        const snap = await db.collection('profiles')
+        .where('visibility', '==', true)
+        .where('approved', '==', true)
+        .limit(100)
+        .get();
+
+        if (snap.empty) { empty.style.display = 'block'; return; }
+
+        snap.forEach(doc => {
+        const p = doc.data();
+        const name = p.name || 'Unnamed';
+        const tags = [
+            p.role ? '#'+p.role : null,
+            ...(Array.isArray(p.areas) ? p.areas.map(a => '#'+a) : [])
+        ].filter(Boolean).join(' ');
+
+        const card = document.createElement('article');
+        card.className = 'card event';
+        card.tabIndex = 0; // focusable for keyboard users
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `Open profile of ${name}`);
+
+        card.innerHTML = `
+            <div class="meta">${escapeHtml(tags)}</div>
+            <h3>${escapeHtml(name)}</h3>
+        `;
+
+        // Click/Enter opens modal
+        const open = () => openProfileModal({ name, tags, bio: p.bio || '' });
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
+
+        results.appendChild(card);
+        });
+    } catch (err) {
+        console.error('Browse query failed:', err);
+        empty.textContent = `Could not load profiles: ${err.message || err}`;
+        empty.style.display = 'block';
+    }
+    }
+
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>\"']/g, s => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[s]));
+    }
+
+    let lastFocus = null;
+
+    function openProfileModal({ name, tags, bio }) {
+    lastFocus = document.activeElement;
+
+    // Fill content
+    document.getElementById('modal-title').textContent = name;
+    document.getElementById('modal-tags').textContent = tags || '';
+    document.getElementById('modal-bio').textContent = bio || '';
+
+    // Show
+    document.getElementById('modal-backdrop').style.display = 'block';
+    const modal = document.getElementById('profile-modal');
+    modal.style.display = 'grid';
+
+    // Focus the close button for accessibility
+    document.getElementById('modal-close').focus();
+    }
+
+    function closeProfileModal() {
+    document.getElementById('modal-backdrop').style.display = 'none';
+    document.getElementById('profile-modal').style.display = 'none';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    // Wire up close actions
+    document.getElementById('modal-close').addEventListener('click', closeProfileModal);
+    document.getElementById('modal-backdrop').addEventListener('click', closeProfileModal);
+    document.addEventListener('keydown', (e) => {
+    const modalVisible = document.getElementById('profile-modal').style.display !== 'none';
+    if (modalVisible && e.key === 'Escape') closeProfileModal();
+    });
+
+
+  </script>
+</body>
+</html>

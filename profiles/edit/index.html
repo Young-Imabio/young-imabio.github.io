@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Edit Profile — Young ImaBio</title>
+  <meta name="description" content="Edit your member profile"/>
+  <link rel="icon" href="/uploads/favicon.ico"/>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav" role="navigation">
+      <a class="brand" href="/"><span class="logo" aria-hidden="true"></span>Young ImaBio</a>
+      <nav class="menu">
+        <a href="/events/">Events</a>
+        <a href="/team/">Team</a>
+        <a href="/profiles/">Profiles</a>
+        <a class="active" href="/profiles/edit/">Edit</a>
+        <a href="/profiles/browse/">Browse</a>
+        <a href="/contact/">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container section">
+    <h1>Edit my profile</h1>
+    <p class="lead">Signed-in members can update their profile details here.</p>
+
+    <div id="signedout" class="card" style="padding:1rem; display:none; max-width:740px">
+      <p>You need to sign in first.</p>
+      <a class="btn" href="/profiles/">Go to sign-in</a>
+    </div>
+
+    <form id="form" class="card" style="padding:1rem; display:none; max-width:740px">
+      <div style="display:grid; gap:.8rem">
+        <label>Name
+          <input id="name" type="text" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+        </label>
+
+        <label>Bio
+          <textarea id="bio" rows="6" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+        </label>
+
+        <!-- NEW: Role (single select) -->
+        <label>Role
+          <select id="role" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+            <option value="">Select your role…</option>
+            <option value="phd">PhD</option>
+            <option value="master">Master</option>
+            <option value="post doc">Post doc</option>
+          </select>
+        </label>
+
+        <!-- NEW: Areas (multi select via checkboxes) -->
+        <fieldset style="border:1px solid var(--border); border-radius:12px; padding:.8rem">
+          <legend style="padding:0 .4rem; color:var(--muted)">Areas</legend>
+          <label style="display:flex; gap:.6rem; align-items:center; margin:.2rem 0">
+            <input type="checkbox" name="areas" value="super res"> super res
+          </label>
+          <label style="display:flex; gap:.6rem; align-items:center; margin:.2rem 0">
+            <input type="checkbox" name="areas" value="deep tissue"> deep tissue
+          </label>
+        </fieldset>
+
+        <label style="display:flex; gap:.6rem; align-items:center">
+          <input id="visibility" type="checkbox"> Visible to other members
+        </label>
+        <small class="meta">Edits may require admin approval before appearing in Browse.</small>
+
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap">
+          <button id="save" class="btn" type="button">Save changes</button>
+          <button id="signout" class="btn" type="button">Sign out</button>
+        </div>
+        <div id="status" class="meta"></div>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
+    </div>
+  </footer>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // Firebase config (unchanged)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
+    authDomain: "young-imabio-c7f74.firebaseapp.com",
+    projectId: "young-imabio-c7f74",
+    storageBucket: "young-imabio-c7f74.firebasestorage.app",
+    messagingSenderId: "257415369612",
+    appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
+    measurementId: "G-D3R7WK86QD"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const signedOut = document.getElementById('signedout');
+  const form = document.getElementById('form');
+  const statusEl = document.getElementById('status');
+
+  function showOut(){ signedOut.style.display='block'; form.style.display='none'; }
+  function showIn(){ signedOut.style.display='none'; form.style.display='block'; }
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  const ROLE_OPTIONS = ["phd","master","post doc"];
+  const AREA_OPTIONS = ["super res","deep tissue"];
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) { showOut(); return; }
+    showIn();
+
+    const ref = db.collection('profiles').doc(user.uid);
+    document.getElementById('signout').onclick = () => auth.signOut();
+
+    try {
+      const snap = await ref.get();
+      if (snap.exists) {
+        const p = snap.data();
+        document.getElementById('name').value = p.name || '';
+        document.getElementById('bio').value = p.bio || '';
+        document.getElementById('visibility').checked = !!p.visibility;
+
+        let role = p.role || '';
+        let areas = Array.isArray(p.areas) ? p.areas : [];
+        if ((!role || areas.length === 0) && Array.isArray(p.tags)) {
+          const lower = p.tags.map(t => String(t).toLowerCase());
+          role = ROLE_OPTIONS.find(r => lower.includes(r)) || role;
+          areas = AREA_OPTIONS.filter(a => lower.includes(a));
+        }
+        if (role) document.getElementById('role').value = role;
+        document.querySelectorAll('input[name="areas"]').forEach(cb => {
+          cb.checked = areas.includes(cb.value);
+        });
+      }
+    } catch (err) {
+      console.error('Load profile failed:', err);
+      setStatus(`Load error: ${err.code || ''} ${err.message || err}`);
+    }
+
+    document.getElementById('save').addEventListener('click', async () => {
+      setStatus('Saving…');
+      const role = document.getElementById('role').value;
+      const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        bio: document.getElementById('bio').value.trim(),
+        role: role || null,
+        areas,
+        tags: [role, ...areas].filter(Boolean),
+        visibility: document.getElementById('visibility').checked,
+        approved: false,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        // Transaction to set createdAt only once if doc is new
+        await db.runTransaction(async (tx) => {
+            const doc = await tx.get(ref);
+            if (!doc.exists) {
+                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            }
+            tx.set(ref, payload, { merge: true });
+        });
+        setStatus('Saved. Redirecting…');
+        setTimeout(() => {
+        window.location.assign('/profiles/?updated=1');
+        }, 500);
+
+      } catch (err) {
+        console.error('Save failed:', err);
+        // Bubble up the real reason – helps diagnose rules/App Check
+        setStatus(`Save error: ${err.code || ''} ${err.message || err}`);
+      }
+    });
+  });
+</script>
+</body>
+</html>
