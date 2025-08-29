@@ -69,7 +69,7 @@
         <small class="meta">Edits may require admin approval before appearing in Browse.</small>
 
         <div style="display:flex; gap:.6rem; flex-wrap:wrap">
-          <button class="btn" type="submit">Save changes</button>
+          <button id="save" class="btn" type="button">Save changes</button>
           <button id="signout" class="btn" type="button">Sign out</button>
         </div>
         <div id="status" class="meta"></div>
@@ -145,27 +145,29 @@
         });
       }
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+      document.getElementById('save').addEventListener('click', async () => {
         statusEl.textContent = 'Saving…';
-
-        const role = document.getElementById('role').value;
-        const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
-        const data = {
-          name: document.getElementById('name').value.trim(),
-          bio: document.getElementById('bio').value.trim(),
-          role: role || null,
-          areas,
-          // keep tags for now (optional): a union of role + areas for old code paths
-          tags: [role, ...areas].filter(Boolean),
-          visibility: document.getElementById('visibility').checked,
-          approved: false,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        await ref.set(data, { merge: true });
-        statusEl.textContent = 'Saved. Awaiting approval if required.';
-      }, { once: true });
+        try {
+            const role = document.getElementById('role').value;
+            const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
+            const data = {
+            name: document.getElementById('name').value.trim(),
+            bio: document.getElementById('bio').value.trim(),
+            role: role || null,
+            areas,
+            tags: [role, ...areas].filter(Boolean),
+            visibility: document.getElementById('visibility').checked,
+            approved: false,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await db.collection('profiles').doc(auth.currentUser.uid).set(data, { merge: true });
+            statusEl.textContent = 'Saved. Awaiting approval if required.';
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = `Error: ${err.code || ''} ${err.message || err}`;
+        }
+        });
     });
   </script>
 </body>
