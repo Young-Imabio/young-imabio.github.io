@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Browse Members — Young ImaBio</title>
+  <meta name="description" content="Search member profiles by tag"/>
+  <link rel="icon" href="/uploads/favicon.ico"/>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container nav" role="navigation">
+      <a class="brand" href="/"><span class="logo" aria-hidden="true"></span>Young ImaBio</a>
+      <nav class="menu">
+        <a href="/events/">Events</a>
+        <a href="/team/">Team</a>
+        <a href="/profiles/">Profiles</a>
+        <a href="/profiles/edit/">Edit</a>
+        <a class="active" href="/profiles/browse/">Browse</a>
+        <a href="/contact/">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container section">
+    <h1>Browse members</h1>
+    <p class="lead">Signed‑in members can explore approved profiles. Filter by tag.</p>
+
+    <!-- Signed OUT message -->
+    <div id="signedout" class="card" style="padding:1rem; display:none; max-width:740px">
+      <p>You need to sign in to view member profiles.</p>
+      <a class="btn" href="/profiles/">Go to sign‑in</a>
+    </div>
+
+    <!-- Filters -->
+    <section id="filters" class="card" style="padding:1rem; display:none; max-width:740px">
+      <form id="filter-form" onsubmit="return false" style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center">
+        <input id="tag" type="search" placeholder="Filter by tag (e.g., microscopy)" style="flex:1; min-width:220px; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+        <button class="btn" id="apply" type="submit">Apply</button>
+        <button class="btn" id="clear" type="button">Clear</button>
+      </form>
+    </section>
+
+    <!-- Results -->
+    <section id="results" class="events" style="margin-top:1rem; display:none"></section>
+    <div id="empty" class="meta" style="display:none; margin-top:.6rem">No profiles found.</div>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
+    </div>
+  </footer>
+
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
+      authDomain: "young-imabio-c7f74.firebaseapp.com",
+      projectId: "young-imabio-c7f74",
+      storageBucket: "young-imabio-c7f74.firebasestorage.app",
+      messagingSenderId: "257415369612",
+      appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
+      measurementId: "G-D3R7WK86QD"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const yearEl = document.getElementById('year');
+    yearEl.textContent = new Date().getFullYear();
+
+    const signedOut = document.getElementById('signedout');
+    const filters = document.getElementById('filters');
+    const results = document.getElementById('results');
+    const empty = document.getElementById('empty');
+
+    function showOut(){ signedOut.style.display='block'; filters.style.display='none'; results.style.display='none'; empty.style.display='none'; }
+    function showIn(){ signedOut.style.display='none'; filters.style.display='block'; results.style.display='grid'; }
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) { showOut(); return; }
+      showIn();
+      // initial load
+      await loadProfiles();
+    });
+
+    // Load profiles (optionally by tag)
+    async function loadProfiles(tag){
+      results.innerHTML = '';
+      empty.style.display = 'none';
+
+      let q = db.collection('profiles').where('approved','==', true);
+      // If your rules require auth for reads (as we set), this will only work for signed‑in users
+      if (tag && tag.trim()) {
+        const t = tag.trim().toLowerCase();
+        q = q.where('tags', 'array-contains', t);
+      }
+
+      const snap = await q.limit(60).get();
+      if (snap.empty) { empty.style.display = 'block'; return; }
+
+      snap.forEach(doc => {
+        const p = doc.data();
+        const card = document.createElement('article');
+        card.className = 'card event';
+        card.innerHTML = `
+          <div class="meta">${(p.tags||[]).map(x=>`#${x}`).join(' ')}</div>
+          <h3>${escapeHtml(p.name || 'Unnamed')}</h3>
+          <p class="meta">${escapeHtml((p.bio||'').slice(0,180))}${(p.bio||'').length>180?'…':''}</p>
+        `;
+        results.appendChild(card);
+      });
+    }
+
+    // Filter UI
+    document.getElementById('filter-form').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const tag = document.getElementById('tag').value;
+      loadProfiles(tag);
+    });
+    document.getElementById('clear').addEventListener('click', ()=>{
+      document.getElementById('tag').value = '';
+      loadProfiles();
+    });
+
+    // Basic HTML escaper
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\'':'&#39;'
+      })[s]);
+    }
+  </script>
+</body>
+</html>
