@@ -3,255 +3,144 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Profiles – Young ImaBio</title>
-  <meta name="description" content="Create your profile and browse members."/>
+  <title>Profiles — Young ImaBio</title>
+  <meta name="description" content="Sign in to access profiles"/>
   <link rel="icon" href="/uploads/favicon.ico"/>
-  <link rel="stylesheet" href="/styles.css"/>
-  <style>
-    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:1rem }
-    @media (max-width: 900px){ .grid2{ grid-template-columns: 1fr } }
-    input, textarea, select { width:100%; padding:.6rem .7rem; border-radius:.6rem; border:1px solid var(--border); background:#0f1530; color:var(--text) }
-    label{ display:block; font-weight:600; margin-top:.6rem }
-    .stack{ display:flex; gap:.6rem; flex-wrap:wrap; margin:.6rem 0 }
-    .pill{ display:inline-block; padding:.15rem .5rem; border:1px solid var(--border); border-radius:999px; font-size:.85rem; color:var(--muted) }
-    .profile-card{ padding:1rem }
-    .muted{ color:var(--muted) }
-  </style>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-<header>
-  <div class="container nav" role="navigation">
-    <a class="brand" href="/">
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation">
+      <a class="brand" href="/">
         <span class="logo" aria-hidden="true"></span>
         Young ImaBio
-    </a>
-    <div class="grow"></div>
-    <nav class="menu">
-      <a href="/events/">Events</a>
-      <a href="/team/">Team</a>
-      <a class="active" href="/profiles/">Profiles</a>
-      <a href="/join/">Join</a>
-      <a href="/contact/">Contact</a>
-    </nav>
-  </div>
-</header>
-
-<main class="container">
-  <section>
-    <h1>Member Profiles</h1>
-    <p class="lead">Sign in to edit your profile. New here? <a href="/join/">Request access</a>.</p>
-  </section>
-
-  <!-- Auth -->
-  <section class="card" style="padding:1rem">
-    <div id="authed" class="hidden">
-      <p>Signed in as <strong id="who"></strong> · <button id="signout" class="btn">Sign out</button></p>
+      </a>
+      <nav class="menu">
+        <a href="/events/">Events</a>
+        <a href="/team/">Team</a>
+        <a class="active" href="/profiles/">Profiles</a>
+        <a href="/join/">Join</a>
+        <a href="/contact/">Contact</a>
+      </nav>
     </div>
+  </header>
 
-    <!-- Invite-only: Sign-in + Forgot password (no Sign-up) -->
-    <div id="auth" class="grid2" style="grid-template-columns: 1fr">
-      <div>
-        <h3>Sign in</h3>
-        <label>Email <input id="si_email" type="email" placeholder="you@university.fr" required></label>
-        <label>Password <input id="si_password" type="password" placeholder="••••••••" required></label>
-        <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.6rem">
-          <button id="signin" class="btn">Sign in</button>
-          <button id="reset" class="btn" type="button">Forgot password</button>
-        </div>
-        <p class="meta" style="margin:.4rem 0 0">
-          New here? <a href="/join/">Request access</a>
-        </p>
-        <p id="si_msg" class="muted"></p>
-      </div>
-    </div>
-  </section>
+  <main id="main" class="container section">
+    <h1>Profiles</h1>
+    <p class="lead">Sign in with a one‑time link to access member profiles. No password needed.</p>
 
-  <!-- Profile editor (only when signed in) -->
-  <section id="editor" class="card hidden" style="padding:1rem; margin-top:1rem">
-    <h2>Your profile</h2>
-    <div class="grid2">
-      <div>
-        <label>Display name <input id="p_name" placeholder="e.g., Alice Martin"></label>
-        <label>Program/Role <input id="p_program" placeholder="PhD – Biophysics, Paris-Saclay"></label>
-        <label>Interests (comma-separated) <input id="p_interests" placeholder="microscopy, EVs, ML"></label>
-      </div>
-      <div>
-        <label>Bio <textarea id="p_bio" rows="5" placeholder="Short bio (max 300 chars)"></textarea></label>
-        <label style="margin-top:.6rem">
-          Visibility
-          <select id="p_visibility">
-            <option value="true">Public (listed in directory)</option>
-            <option value="false">Private (only you can see)</option>
-          </select>
+    <!-- Signed OUT state -->
+    <section id="signin-card" class="card" style="padding:1rem; display:block; max-width:520px">
+      <form id="signin-form" onsubmit="return false" style="display:grid; gap:.75rem">
+        <label>
+          <span class="sr-only">Email</span>
+          <input id="email" type="email" placeholder="you@example.com" required
+                 style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
         </label>
+        <button id="send-link" class="btn" type="submit">Send me a login link</button>
+        <p class="meta">We’ll email you a secure, one‑time link. Check your inbox (and spam). Links expire after a short time.</p>
+      </form>
+    </section>
+
+    <!-- Signed IN state -->
+    <section id="signedin-card" class="card" style="padding:1rem; display:none; max-width:620px">
+      <p id="whoami" style="margin-top:0">You’re signed in.</p>
+      <div style="display:flex; gap:.6rem; flex-wrap:wrap">
+        <a class="btn" href="/profiles/edit/">Edit my profile</a>
+        <a class="btn" href="/profiles/browse/">Browse members</a>
+        <button id="signout" class="btn" type="button">Sign out</button>
       </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <small>© <span id="year"></span> Young ImaBio</small>
+      <small style="justify-self:end">Made with ♥ by the team</small>
     </div>
-    <button id="save" class="btn" style="margin-top:.8rem">Save profile</button>
-    <p id="p_msg" class="muted"></p>
-  </section>
+  </footer>
 
-  <!-- Directory -->
-  <section style="margin-top:1rem">
-    <h2>Browse profiles</h2>
-    <div class="stack">
-      <input id="q" type="search" placeholder="Search name, program, interests…">
-    </div>
-    <div id="list" class="events" style="margin-top:.6rem"></div>
-    <p id="count" class="muted" style="margin-top:.6rem"></p>
-  </section>
-</main>
-
-<footer>
-  <div class="container footer-grid">
-    <small>© <span id="year"></span> Young ImaBio</small>
-    <small style="justify-self:end">Made with ♥ by the team</small>
-  </div>
-</footer>
-
-<!-- Firebase COMPAT SDKs (match firebase.auth()/firebase.firestore() usage) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-<script>
-  // 1) Init (COMPAT API)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
-    authDomain: "young-imabio-c7f74.firebaseapp.com",
-    projectId: "young-imabio-c7f74",
-    storageBucket: "young-imabio-c7f74.appspot.com",
-    messagingSenderId: "257415369612",
-    appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
-    measurementId: "G-D3R7WK86QD"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  // 2) Helpers
-  const $ = sel => document.querySelector(sel);
-  const year = $('#year'); if (year) year.textContent = new Date().getFullYear();
-
-  const els = {
-    authed: $('#authed'), who: $('#who'), signout: $('#signout'),
-    auth: $('#auth'),
-    si_email: $('#si_email'), si_password: $('#si_password'),
-    signin: $('#signin'), si_msg: $('#si_msg'),
-    editor: $('#editor'), save: $('#save'),
-    p_name: $('#p_name'), p_program: $('#p_program'), p_interests: $('#p_interests'), p_bio: $('#p_bio'), p_visibility: $('#p_visibility'),
-    q: $('#q'), list: $('#list'), count: $('#count')
-  };
-
-  function tagsToArray(str){ return (str || '').split(',').map(s => s.trim()).filter(Boolean); }
-
-  // 3) Sign in + Reset password (invite-only)
-  els.signin.onclick = async () => {
-    els.si_msg.textContent = '';
-    try {
-      await auth.signInWithEmailAndPassword(els.si_email.value.trim(), els.si_password.value);
-    } catch (e){ els.si_msg.textContent = e.message; }
-  };
-
-  document.getElementById('reset').onclick = async () => {
-    const email = els.si_email.value.trim();
-    if (!email) { els.si_msg.textContent = 'Enter your email, then click “Forgot password”.'; return; }
-    els.si_msg.textContent = '';
-    try {
-      await auth.sendPasswordResetEmail(email);
-      els.si_msg.textContent = 'Password reset email sent. Check your inbox.';
-    } catch (e){ els.si_msg.textContent = e.message; }
-  };
-
-  els.signout?.addEventListener('click', () => auth.signOut());
-
-  // 4) Load/save your profile (doc id = UID)
-  async function loadMyProfile(uid){
-    const doc = await db.collection('profiles').doc(uid).get();
-    if (doc.exists){
-      const p = doc.data();
-      els.p_name.value = p.displayName || '';
-      els.p_program.value = p.program || '';
-      els.p_interests.value = (p.interests || []).join(', ');
-      els.p_bio.value = p.bio || '';
-      els.p_visibility.value = String(!!p.visibility);
-    } else {
-      els.p_visibility.value = 'true';
-    }
-  }
-
-  els.save.onclick = async () => {
-    const u = auth.currentUser;
-    if (!u) return;
-    const payload = {
-      displayName: els.p_name.value.trim(),
-      program: els.p_program.value.trim(),
-      interests: tagsToArray(els.p_interests.value),
-      bio: (els.p_bio.value || '').slice(0, 300),
-      visibility: els.p_visibility.value === 'true',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  <!-- Firebase (compat) SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    // TODO: replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
+      authDomain: "young-imabio-c7f74.firebaseapp.com",
+      projectId: "young-imabio-c7f74",
+      storageBucket: "young-imabio-c7f74.firebasestorage.app",
+      messagingSenderId: "257415369612",
+      appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
+      measurementId: "G-D3R7WK86QD"
     };
-    try{
-      await db.collection('profiles').doc(u.uid).set(payload, { merge: true });
-      document.getElementById('p_msg').textContent = 'Saved ✓';
-      setTimeout(()=> document.getElementById('p_msg').textContent = '', 1500);
-    }catch(e){
-      document.getElementById('p_msg').textContent = e.message;
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Helpers to toggle UI
+    function showSignedIn(user){
+      document.getElementById('signin-card').style.display = 'none';
+      document.getElementById('signedin-card').style.display = 'block';
+      const email = user && (user.email || (user.providerData[0] && user.providerData[0].email)) || '';
+      document.getElementById('whoami').textContent = `You’re signed in as ${email}.`;
     }
-  };
+    function showSignedOut(){
+      document.getElementById('signedin-card').style.display = 'none';
+      document.getElementById('signin-card').style.display = 'block';
+    }
 
-  // 5) Directory: load public profiles + simple search
-  let ALL = [];
-  async function loadDirectory(){
-    // Firestore rules should only allow visible profiles to be read
-    const snap = await db.collection('profiles').get();
-    ALL = snap.docs
-      .map(d => ({ id:d.id, ...d.data() }))
-      .filter(p => p.visibility);
-    render(ALL);
-  }
+    // Year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-  function render(items){
-    const q = (els.q.value || '').toLowerCase();
-    const filtered = items.filter(p => {
-      const hay = [
-        p.displayName, p.program, (p.interests||[]).join(' '), p.bio
-      ].join(' ').toLowerCase();
-      return hay.includes(q);
+    // 1) Handle incoming magic links
+    (async function handleEmailLink(){
+      try{
+        const href = window.location.href;
+        if (auth.isSignInWithEmailLink(href)){
+          let email = window.localStorage.getItem('emailForSignIn');
+          if (!email){
+            email = window.prompt('Confirm your email to finish sign‑in:');
+          }
+          const { user } = await auth.signInWithEmailLink(email, href);
+          window.localStorage.removeItem('emailForSignIn');
+          showSignedIn(user);
+        }
+      } catch(err){
+        console.error(err);
+        alert(err.message || 'Could not complete sign‑in. Try sending a new link.');
+      }
+    })();
+
+    // 2) Listen to auth state
+    auth.onAuthStateChanged(user => {
+      if (user) showSignedIn(user); else showSignedOut();
     });
-    els.list.innerHTML = '';
-    for (const p of filtered){
-      const el = document.createElement('article');
-      el.className = 'event card profile-card';
-      el.innerHTML = `
-        <h3>${p.displayName || 'Unnamed'}</h3>
-        <div class="meta">${p.program || ''}</div>
-        ${p.interests?.length ? `<p>${p.interests.map(t=>`<span class="pill">${t}</span>`).join(' ')}</p>` : ''}
-        ${p.bio ? `<p class="muted">${p.bio}</p>` : ''}
-      `;
-      els.list.appendChild(el);
-    }
-    els.count.textContent = `${filtered.length} profile${filtered.length===1?'':'s'}`;
-  }
 
-  els.q.addEventListener('input', () => render(ALL));
+    // 3) Send magic link
+    document.getElementById('signin-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      if (!email) return;
+      const actionCodeSettings = {
+        url: window.location.origin + '/profiles/', // send them back here after click
+        handleCodeInApp: true
+      };
+      try{
+        await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+        window.localStorage.setItem('emailForSignIn', email);
+        alert('Login link sent! Check your inbox.');
+      } catch(err){
+        console.error(err);
+        alert(err.message || 'Could not send link.');
+      }
+    });
 
-  // 6) Auth state listener
-  auth.onAuthStateChanged(async (user) => {
-    if (user){
-      els.auth.classList.add('hidden');
-      els.authed.classList.remove('hidden');
-      els.editor.classList.remove('hidden');
-      document.getElementById('who').textContent = user.email || user.uid;
-      await loadMyProfile(user.uid);
-    }else{
-      els.auth.classList.remove('hidden');
-      els.authed.classList.add('hidden');
-      els.editor.classList.add('hidden');
-    }
-  });
-
-  // 7) Boot directory
-  loadDirectory().catch(console.error);
-</script>
+    // 4) Sign out
+    document.getElementById('signout').addEventListener('click', async () => {
+      await auth.signOut();
+      showSignedOut();
+    });
+  </script>
 </body>
 </html>
