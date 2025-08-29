@@ -23,6 +23,21 @@
     </div>
   </header>
 
+  <!-- Profile modal -->
+    <div id="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50;"></div>
+
+    <div id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
+        style="display:none; position:fixed; inset:0; z-index:51; display:grid; place-items:center; padding:1rem;">
+    <article class="card" style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative">
+        <button id="modal-close" class="btn" type="button"
+                style="position:absolute; top:.6rem; right:.6rem">Close</button>
+        <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
+        <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
+        <p id="modal-bio" class="meta" style="white-space:pre-wrap"></p>
+    </article>
+    </div>
+
+
   <main class="container section">
     <h1>Browse members</h1>
     <p class="lead">Signed-in members can explore approved profiles.</p>
@@ -88,48 +103,94 @@
     });
 
     async function loadProfiles() {
-      results.innerHTML = '';
-      empty.style.display = 'none';
+    results.innerHTML = '';
+    empty.style.display = 'none';
 
-      try {
-        // Simple query: only show visible + approved profiles
+    try {
         const snap = await db.collection('profiles')
-          .where('visibility', '==', true)
-          .where('approved', '==', true)
-          .limit(100)
-          .get();
+        .where('visibility', '==', true)
+        .where('approved', '==', true)
+        .limit(100)
+        .get();
 
-        if (snap.empty) {
-          empty.style.display = 'block';
-          return;
-        }
+        if (snap.empty) { empty.style.display = 'block'; return; }
 
         snap.forEach(doc => {
-          const p = doc.data();
-          const card = document.createElement('article');
-          card.className = 'card event';
-          card.innerHTML = `
-            <div class="meta">
-              ${(p.role ? ('#'+escapeHtml(p.role)+' ') : '')}
-              ${(p.areas || []).map(x => '#'+escapeHtml(x)).join(' ')}
-            </div>
-            <h3>${escapeHtml(p.name || 'Unnamed')}</h3>
-            <p class="meta">${escapeHtml((p.bio || '').slice(0,180))}${(p.bio || '').length > 180 ? '…' : ''}</p>
-          `;
-          results.appendChild(card);
+        const p = doc.data();
+        const name = p.name || 'Unnamed';
+        const tags = [
+            p.role ? '#'+p.role : null,
+            ...(Array.isArray(p.areas) ? p.areas.map(a => '#'+a) : [])
+        ].filter(Boolean).join(' ');
+
+        const card = document.createElement('article');
+        card.className = 'card event';
+        card.tabIndex = 0; // focusable for keyboard users
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `Open profile of ${name}`);
+
+        card.innerHTML = `
+            <div class="meta">${escapeHtml(tags)}</div>
+            <h3>${escapeHtml(name)}</h3>
+        `;
+
+        // Click/Enter opens modal
+        const open = () => openProfileModal({ name, tags, bio: p.bio || '' });
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
         });
-      } catch (err) {
+
+        results.appendChild(card);
+        });
+    } catch (err) {
         console.error('Browse query failed:', err);
         empty.textContent = `Could not load profiles: ${err.message || err}`;
         empty.style.display = 'block';
-      }
     }
+    }
+
 
     function escapeHtml(str){
       return String(str).replace(/[&<>\"']/g, s => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
       }[s]));
     }
+
+    let lastFocus = null;
+
+    function openProfileModal({ name, tags, bio }) {
+    lastFocus = document.activeElement;
+
+    // Fill content
+    document.getElementById('modal-title').textContent = name;
+    document.getElementById('modal-tags').textContent = tags || '';
+    document.getElementById('modal-bio').textContent = bio || '';
+
+    // Show
+    document.getElementById('modal-backdrop').style.display = 'block';
+    const modal = document.getElementById('profile-modal');
+    modal.style.display = 'grid';
+
+    // Focus the close button for accessibility
+    document.getElementById('modal-close').focus();
+    }
+
+    function closeProfileModal() {
+    document.getElementById('modal-backdrop').style.display = 'none';
+    document.getElementById('profile-modal').style.display = 'none';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    // Wire up close actions
+    document.getElementById('modal-close').addEventListener('click', closeProfileModal);
+    document.getElementById('modal-backdrop').addEventListener('click', closeProfileModal);
+    document.addEventListener('keydown', (e) => {
+    const modalVisible = document.getElementById('profile-modal').style.display !== 'none';
+    if (modalVisible && e.key === 'Escape') closeProfileModal();
+    });
+
+
   </script>
 </body>
 </html>
