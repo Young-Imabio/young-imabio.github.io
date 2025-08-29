@@ -86,89 +86,106 @@
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
-    // Replace with your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
-      authDomain: "young-imabio-c7f74.firebaseapp.com",
-      projectId: "young-imabio-c7f74",
-      storageBucket: "young-imabio-c7f74.firebasestorage.app",
-      messagingSenderId: "257415369612",
-      appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
-      measurementId: "G-D3R7WK86QD"
-    };
-    firebase.initializeApp(firebaseConfig);
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // Firebase config (unchanged)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
+    authDomain: "young-imabio-c7f74.firebaseapp.com",
+    projectId: "young-imabio-c7f74",
+    storageBucket: "young-imabio-c7f74.firebasestorage.app",
+    messagingSenderId: "257415369612",
+    appId: "1:257415369612:web:b08f3f0fa5828e0c0bfca9",
+    measurementId: "G-D3R7WK86QD"
+  };
+  firebase.initializeApp(firebaseConfig);
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-    document.getElementById('year').textContent = new Date().getFullYear();
+  document.getElementById('year').textContent = new Date().getFullYear();
 
-    const signedOut = document.getElementById('signedout');
-    const form = document.getElementById('form');
-    const statusEl = document.getElementById('status');
+  const signedOut = document.getElementById('signedout');
+  const form = document.getElementById('form');
+  const statusEl = document.getElementById('status');
 
-    function showOut(){ signedOut.style.display='block'; form.style.display='none'; }
-    function showIn(){ signedOut.style.display='none'; form.style.display='block'; }
+  function showOut(){ signedOut.style.display='block'; form.style.display='none'; }
+  function showIn(){ signedOut.style.display='none'; form.style.display='block'; }
+  function setStatus(msg){ statusEl.textContent = msg; }
 
-    const ROLE_OPTIONS = ["phd","master","post doc"];
-    const AREA_OPTIONS = ["super res","deep tissue"];
+  const ROLE_OPTIONS = ["phd","master","post doc"];
+  const AREA_OPTIONS = ["super res","deep tissue"];
 
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) { showOut(); return; }
-      showIn();
-      document.getElementById('signout').onclick = () => auth.signOut();
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) { showOut(); return; }
+    showIn();
 
-      const ref = db.collection('profiles').doc(user.uid);
+    const ref = db.collection('profiles').doc(user.uid);
+    document.getElementById('signout').onclick = () => auth.signOut();
+
+    try {
       const snap = await ref.get();
-
       if (snap.exists) {
         const p = snap.data();
         document.getElementById('name').value = p.name || '';
         document.getElementById('bio').value = p.bio || '';
         document.getElementById('visibility').checked = !!p.visibility;
 
-        // Load role/areas with backward compatibility from old tags array
         let role = p.role || '';
-        let areas = p.areas || [];
+        let areas = Array.isArray(p.areas) ? p.areas : [];
         if ((!role || areas.length === 0) && Array.isArray(p.tags)) {
           const lower = p.tags.map(t => String(t).toLowerCase());
           role = ROLE_OPTIONS.find(r => lower.includes(r)) || role;
           areas = AREA_OPTIONS.filter(a => lower.includes(a));
         }
-
         if (role) document.getElementById('role').value = role;
         document.querySelectorAll('input[name="areas"]').forEach(cb => {
           cb.checked = areas.includes(cb.value);
         });
       }
+    } catch (err) {
+      console.error('Load profile failed:', err);
+      setStatus(`Load error: ${err.code || ''} ${err.message || err}`);
+    }
 
-      document.getElementById('save').addEventListener('click', async () => {
-        statusEl.textContent = 'Saving…';
-        try {
-            const role = document.getElementById('role').value;
-            const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
-            const data = {
-            name: document.getElementById('name').value.trim(),
-            bio: document.getElementById('bio').value.trim(),
-            role: role || null,
-            areas,
-            tags: [role, ...areas].filter(Boolean),
-            visibility: document.getElementById('visibility').checked,
-            approved: false,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection('profiles').doc(auth.currentUser.uid).set(data, { merge: true });
-            statusEl.textContent = 'Saved. Awaiting approval if required.';
-        } catch (err) {
-            console.error(err);
-            statusEl.textContent = `Error: ${err.code || ''} ${err.message || err}`;
-        }
+    document.getElementById('save').addEventListener('click', async () => {
+      setStatus('Saving…');
+      const role = document.getElementById('role').value;
+      const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        bio: document.getElementById('bio').value.trim(),
+        role: role || null,
+        areas,
+        tags: [role, ...areas].filter(Boolean),
+        visibility: document.getElementById('visibility').checked,
+        approved: false,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        // Transaction to set createdAt only once if doc is new
+        await db.runTransaction(async (tx) => {
+            const doc = await tx.get(ref);
+            if (!doc.exists) {
+                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            }
+            tx.set(ref, payload, { merge: true });
         });
+        setStatus('Saved. Redirecting…');
+        setTimeout(() => {
+        window.location.assign('/profiles/?updated=1');
+        }, 500);
+
+      } catch (err) {
+        console.error('Save failed:', err);
+        // Bubble up the real reason – helps diagnose rules/App Check
+        setStatus(`Save error: ${err.code || ''} ${err.message || err}`);
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>

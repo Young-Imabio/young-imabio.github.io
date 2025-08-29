@@ -106,7 +106,18 @@
 
     // Listen to auth state
     auth.onAuthStateChanged(user => {
-      if (user) showSignedIn(user); else showSignedOut();
+      if (user) {
+        showSignedIn(user);
+        // If user just saved their profile, show success message once
+        const params = new URLSearchParams(location.search);
+        if (params.has('updated')) {
+          setHelp('Profile updated successfully.');
+          // Clean the URL so the message only appears once
+          history.replaceState({}, '', location.pathname);
+        }
+      } else {
+        showSignedOut();
+      }
     });
 
     // Sign in with email + password (NO public sign up)
@@ -164,3 +175,4 @@
   </script>
 </body>
 </html>
+
