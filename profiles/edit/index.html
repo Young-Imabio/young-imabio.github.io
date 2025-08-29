@@ -25,30 +25,49 @@
 
   <main class="container section">
     <h1>Edit my profile</h1>
-    <p class="lead">Signed‑in members can update their profile details here. Changes may be reviewed before appearing to others.</p>
+    <p class="lead">Signed-in members can update their profile details here.</p>
 
-    <!-- Shown when signed OUT -->
     <div id="signedout" class="card" style="padding:1rem; display:none; max-width:740px">
       <p>You need to sign in first.</p>
-      <a class="btn" href="/profiles/">Go to sign‑in</a>
+      <a class="btn" href="/profiles/">Go to sign-in</a>
     </div>
 
-    <!-- Shown when signed IN -->
     <form id="form" class="card" style="padding:1rem; display:none; max-width:740px">
       <div style="display:grid; gap:.8rem">
         <label>Name
           <input id="name" type="text" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
         </label>
+
         <label>Bio
           <textarea id="bio" rows="6" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
         </label>
-        <label>Tags (comma‑separated)
-          <input id="tags" type="text" placeholder="microscopy, phd, france" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+
+        <!-- NEW: Role (single select) -->
+        <label>Role
+          <select id="role" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+            <option value="">Select your role…</option>
+            <option value="phd">PhD</option>
+            <option value="master">Master</option>
+            <option value="post doc">Post doc</option>
+          </select>
         </label>
+
+        <!-- NEW: Areas (multi select via checkboxes) -->
+        <fieldset style="border:1px solid var(--border); border-radius:12px; padding:.8rem">
+          <legend style="padding:0 .4rem; color:var(--muted)">Areas</legend>
+          <label style="display:flex; gap:.6rem; align-items:center; margin:.2rem 0">
+            <input type="checkbox" name="areas" value="super res"> super res
+          </label>
+          <label style="display:flex; gap:.6rem; align-items:center; margin:.2rem 0">
+            <input type="checkbox" name="areas" value="deep tissue"> deep tissue
+          </label>
+        </fieldset>
+
         <label style="display:flex; gap:.6rem; align-items:center">
           <input id="visibility" type="checkbox"> Visible to other members
         </label>
-        <small class="meta">Note: new or edited profiles may require admin approval before they’re visible in Browse.</small>
+        <small class="meta">Edits may require admin approval before appearing in Browse.</small>
+
         <div style="display:flex; gap:.6rem; flex-wrap:wrap">
           <button class="btn" type="submit">Save changes</button>
           <button id="signout" class="btn" type="button">Sign out</button>
@@ -65,7 +84,7 @@
     </div>
   </footer>
 
-  <!-- Firebase SDKs (compat) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -85,8 +104,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const yearEl = document.getElementById('year');
-    yearEl.textContent = new Date().getFullYear();
+    document.getElementById('year').textContent = new Date().getFullYear();
 
     const signedOut = document.getElementById('signedout');
     const form = document.getElementById('form');
@@ -95,42 +113,56 @@
     function showOut(){ signedOut.style.display='block'; form.style.display='none'; }
     function showIn(){ signedOut.style.display='none'; form.style.display='block'; }
 
-    // Auth state
+    const ROLE_OPTIONS = ["phd","master","post doc"];
+    const AREA_OPTIONS = ["super res","deep tissue"];
+
     auth.onAuthStateChanged(async (user) => {
       if (!user) { showOut(); return; }
       showIn();
       document.getElementById('signout').onclick = () => auth.signOut();
 
-      // Load existing profile
       const ref = db.collection('profiles').doc(user.uid);
       const snap = await ref.get();
+
       if (snap.exists) {
         const p = snap.data();
         document.getElementById('name').value = p.name || '';
         document.getElementById('bio').value = p.bio || '';
-        document.getElementById('tags').value = (p.tags || []).join(', ');
         document.getElementById('visibility').checked = !!p.visibility;
+
+        // Load role/areas with backward compatibility from old tags array
+        let role = p.role || '';
+        let areas = p.areas || [];
+        if ((!role || areas.length === 0) && Array.isArray(p.tags)) {
+          const lower = p.tags.map(t => String(t).toLowerCase());
+          role = ROLE_OPTIONS.find(r => lower.includes(r)) || role;
+          areas = AREA_OPTIONS.filter(a => lower.includes(a));
+        }
+
+        if (role) document.getElementById('role').value = role;
+        document.querySelectorAll('input[name="areas"]').forEach(cb => {
+          cb.checked = areas.includes(cb.value);
+        });
       }
 
-      // Save
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         statusEl.textContent = 'Saving…';
-        const tags = document.getElementById('tags').value
-          .split(',')
-          .map(t => t.trim())
-          .filter(Boolean)
-          .map(t => t.toLowerCase());
+
+        const role = document.getElementById('role').value;
+        const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
         const data = {
           name: document.getElementById('name').value.trim(),
           bio: document.getElementById('bio').value.trim(),
-          tags,
+          role: role || null,
+          areas,
+          // keep tags for now (optional): a union of role + areas for old code paths
+          tags: [role, ...areas].filter(Boolean),
           visibility: document.getElementById('visibility').checked,
-          approved: false, // stays false until you approve
+          approved: false,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
-        // Use set({merge:true}) to avoid overwriting createdAt on updates
         await ref.set(data, { merge: true });
         statusEl.textContent = 'Saved. Awaiting approval if required.';
       }, { once: true });
