@@ -111,7 +111,6 @@
 
     try {
         const snap = await db.collection('profiles')
-        .where('visibility', '==', true)
         .where('approved', '==', true)
         .limit(100)
         .get();

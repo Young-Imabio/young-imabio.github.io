@@ -44,10 +44,6 @@
         </label>
         <small class="meta">Your email is visible to signed-in members.</small>
 
-        <label style="display:flex; gap:.6rem; align-items:center">
-          <input id="shareEmail" type="checkbox"> Share my email with members
-        </label>
-
         <label>Bio
           <textarea id="bio" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
           <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 500</small>
@@ -146,7 +142,6 @@
         document.getElementById('name').value = p.name || '';
         document.getElementById('bio').value = p.bio || '';
         updateCounter();
-        document.getElementById('visibility').checked = !!p.visibility;
 
         let role = p.role || '';
         let areas = Array.isArray(p.areas) ? p.areas : [];
@@ -181,7 +176,6 @@
         role: role || null,
         areas,
         tags: [role, ...areas].filter(Boolean),
-        visibility: document.getElementById('visibility').checked,
         email: auth.currentUser?.email || null,
         approved: false,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
