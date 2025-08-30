@@ -39,8 +39,10 @@
         </label>
 
         <label>Bio
-          <textarea id="bio" rows="6" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+          <textarea id="bio" rows="6" maxlength="300" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+          <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 300</small>
         </label>
+
 
         <!-- NEW: Role (single select) -->
         <label>Role
@@ -86,9 +88,9 @@
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
   // Firebase config (unchanged)
   const firebaseConfig = {
     apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
@@ -130,6 +132,7 @@
         const p = snap.data();
         document.getElementById('name').value = p.name || '';
         document.getElementById('bio').value = p.bio || '';
+        updateCounter();
         document.getElementById('visibility').checked = !!p.visibility;
 
         let role = p.role || '';
@@ -150,6 +153,11 @@
     }
 
     document.getElementById('save').addEventListener('click', async () => {
+      const bioVal = document.getElementById('bio').value.trim();
+      if (bioVal.length > 300) {
+        setStatus('Bio is too long (max 300 characters).');
+        return;
+      }
       setStatus('Saving…');
       const role = document.getElementById('role').value;
       const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
@@ -186,6 +194,23 @@
       }
     });
   });
+
+  // --- Bio live counter ---
+  const bioEl = document.getElementById('bio');
+  const counterEl = document.getElementById('bio-counter');
+
+  function updateCounter() {
+    const len = bioEl.value.length;
+    counterEl.textContent = `${len} / 300`;
+    counterEl.style.color = (len > 280) ? 'red' : 'var(--muted)';
+  }
+
+  bioEl.addEventListener('input', updateCounter);
+
+  // Initialize counter when loading profile data
+  updateCounter();
+
+
 </script>
 </body>
 </html>
