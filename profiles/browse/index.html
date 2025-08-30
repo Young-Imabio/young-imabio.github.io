@@ -28,12 +28,14 @@
 
     <div id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
         style="display:none; position:fixed; inset:0; z-index:51; place-items:center; padding:1rem;">
-    <article class="card" style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative">
+    <article class="card" 
+      style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative;
+             max-height:calc(96vh - 2rem); overflow:auto;">
         <button id="modal-close" class="btn" type="button"
-                style="position:absolute; top:.6rem; right:.6rem">Close</button>
+                style="position:sticky; top:.6rem; float:right; margin-left:auto;">Close</button>
         <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
         <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
-        <p id="modal-bio" class="meta" style="white-space:pre-wrap"></p>
+        <p id="modal-bio" class="meta" style="white-space:pre-wrap; overflow-wrap:anywhere;"></p>
     </article>
     </div>
 
