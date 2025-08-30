@@ -45,7 +45,7 @@
         <small class="meta">Your email is visible to signed-in members.</small>
 
         <label>Bio
-          <textarea id="bio" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+          <textarea id="bio" aria-describedby="bio-counter" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
           <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 500</small>
         </label>
 
@@ -71,9 +71,6 @@
           </label>
         </fieldset>
 
-        <label style="display:flex; gap:.6rem; align-items:center">
-          <input id="visibility" type="checkbox"> Visible to other members
-        </label>
         <small class="meta">Edits may require admin approval before appearing in Browse.</small>
 
         <div style="display:flex; gap:.6rem; flex-wrap:wrap">
@@ -161,13 +158,17 @@
     }
 
     document.getElementById('save').addEventListener('click', async () => {
+      const nameVal = document.getElementById('name').value.trim();
+      const role = document.getElementById('role').value;
+
+      if (!nameVal) { setStatus('Please enter your name.'); return; }
+      if (!role)    { setStatus('Please select your role.'); return; }
       const bioVal = document.getElementById('bio').value.trim();
       if (bioVal.length > 500) {
         setStatus('Bio is too long (max 500 characters).');
         return;
       }
       setStatus('Saving…');
-      const role = document.getElementById('role').value;
       const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
 
       const payload = {
