@@ -35,6 +35,7 @@
                 style="position:sticky; top:.6rem; float:right; margin-left:auto;">Close</button>
         <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
         <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
+        <a id="modal-email" class="meta" style="display:none; margin-bottom:.4rem"></a>
         <p id="modal-bio" class="meta" style="white-space:pre-wrap; overflow-wrap:anywhere;"></p>
     </article>
     </div>
@@ -125,6 +126,8 @@
             ...(Array.isArray(p.areas) ? p.areas.map(a => '#'+a) : [])
         ].filter(Boolean).join(' ');
 
+        const email = p.email || '';
+
         const card = document.createElement('article');
         card.className = 'card event';
         card.tabIndex = 0; // focusable for keyboard users
@@ -137,7 +140,7 @@
         `;
 
         // Click/Enter opens modal
-        const open = () => openProfileModal({ name, tags, bio: p.bio || '' });
+        const open = () => openProfileModal({ name, tags, bio: p.bio || '', email });
         card.addEventListener('click', open);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
@@ -161,22 +164,30 @@
 
     let lastFocus = null;
 
-    function openProfileModal({ name, tags, bio }) {
-    lastFocus = document.activeElement;
+    function openProfileModal({ name, tags, bio, email }) {
+      lastFocus = document.activeElement;
 
-    // Fill content
-    document.getElementById('modal-title').textContent = name;
-    document.getElementById('modal-tags').textContent = tags || '';
-    document.getElementById('modal-bio').textContent = bio || '';
+      document.getElementById('modal-title').textContent = name;
+      document.getElementById('modal-tags').textContent = tags || '';
+      document.getElementById('modal-bio').textContent = bio || '';
 
-    // Show
-    document.getElementById('modal-backdrop').style.display = 'block';
-    const modal = document.getElementById('profile-modal');
-    modal.style.display = 'grid';
+      const emailEl = document.getElementById('modal-email');
+      if (email) {
+        emailEl.textContent = email;                 // safe (textContent)
+        emailEl.href = `mailto:${encodeURIComponent(email)}`;
+        emailEl.style.display = 'inline-block';
+      } else {
+        emailEl.textContent = '';
+        emailEl.removeAttribute('href');
+        emailEl.style.display = 'none';
+      }
 
-    // Focus the close button for accessibility
-    document.getElementById('modal-close').focus();
+      document.getElementById('modal-backdrop').style.display = 'block';
+      const modal = document.getElementById('profile-modal');
+      modal.style.display = 'grid';
+      document.getElementById('modal-close').focus();
     }
+
 
     function closeProfileModal() {
     document.getElementById('modal-backdrop').style.display = 'none';

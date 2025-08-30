@@ -38,6 +38,16 @@
           <input id="name" type="text" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
         </label>
 
+        <label>Email
+          <input id="email" type="email" readonly
+                style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
+        </label>
+        <small class="meta">Your email is visible to signed-in members.</small>
+
+        <label style="display:flex; gap:.6rem; align-items:center">
+          <input id="shareEmail" type="checkbox"> Share my email with members
+        </label>
+
         <label>Bio
           <textarea id="bio" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
           <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 500</small>
@@ -123,6 +133,9 @@
     if (!user) { showOut(); return; }
     showIn();
 
+    const emailInput = document.getElementById('email');
+    if (emailInput) emailInput.value = user.email || '';
+
     const ref = db.collection('profiles').doc(user.uid);
     document.getElementById('signout').onclick = () => auth.signOut();
 
@@ -169,9 +182,11 @@
         areas,
         tags: [role, ...areas].filter(Boolean),
         visibility: document.getElementById('visibility').checked,
+        email: auth.currentUser?.email || null,
         approved: false,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
+
 
       try {
         // Transaction to set createdAt only once if doc is new
