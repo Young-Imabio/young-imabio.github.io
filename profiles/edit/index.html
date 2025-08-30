@@ -39,8 +39,8 @@
         </label>
 
         <label>Bio
-          <textarea id="bio" rows="6" maxlength="300" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
-          <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 300</small>
+          <textarea id="bio" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+          <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 500</small>
         </label>
 
 
@@ -154,8 +154,8 @@
 
     document.getElementById('save').addEventListener('click', async () => {
       const bioVal = document.getElementById('bio').value.trim();
-      if (bioVal.length > 300) {
-        setStatus('Bio is too long (max 300 characters).');
+      if (bioVal.length > 500) {
+        setStatus('Bio is too long (max 500 characters).');
         return;
       }
       setStatus('Saving…');
@@ -201,8 +201,8 @@
 
   function updateCounter() {
     const len = bioEl.value.length;
-    counterEl.textContent = `${len} / 300`;
-    counterEl.style.color = (len > 280) ? 'red' : 'var(--muted)';
+    counterEl.textContent = `${len} / 500`;
+    counterEl.style.color = (len > 480) ? 'red' : 'var(--muted)';
   }
 
   bioEl.addEventListener('input', updateCounter);
