@@ -160,46 +160,39 @@
     document.getElementById('save').addEventListener('click', async () => {
       const nameVal = document.getElementById('name').value.trim();
       const role = document.getElementById('role').value;
-
+      const bioVal = document.getElementById('bio').value.trim();
       if (!nameVal) { setStatus('Please enter your name.'); return; }
       if (!role)    { setStatus('Please select your role.'); return; }
-      const bioVal = document.getElementById('bio').value.trim();
-      if (bioVal.length > 500) {
-        setStatus('Bio is too long (max 500 characters).');
-        return;
-      }
+      if (bioVal.length > 500) { setStatus('Bio is too long (max 500 characters).'); return; }
+
       setStatus('Saving…');
       const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
 
       const payload = {
-        name: document.getElementById('name').value.trim(),
-        bio: document.getElementById('bio').value.trim(),
+        name: nameVal,
+        bio: bioVal,
         role: role || null,
         areas,
         tags: [role, ...areas].filter(Boolean),
         email: auth.currentUser?.email || null,
-        approved: false,
+        approved: false, // 👈 force re-review on any change
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-
       try {
-        // Transaction to set createdAt only once if doc is new
         await db.runTransaction(async (tx) => {
-            const doc = await tx.get(ref);
-            if (!doc.exists) {
-                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            }
+          const ref = db.collection('profiles').doc(auth.currentUser.uid);
+          const doc = await tx.get(ref);
+          if (!doc.exists) {
+            tx.set(ref, { ...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          } else {
             tx.set(ref, payload, { merge: true });
+          }
         });
         setStatus('Saved. Redirecting…');
-        setTimeout(() => {
-        window.location.assign('/profiles/?updated=1');
-        }, 500);
-
+        setTimeout(() => window.location.assign('/profiles/?updated=1'), 500);
       } catch (err) {
         console.error('Save failed:', err);
-        // Bubble up the real reason – helps diagnose rules/App Check
         setStatus(`Save error: ${err.code || ''} ${err.message || err}`);
       }
     });
