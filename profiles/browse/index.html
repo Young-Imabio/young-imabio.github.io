@@ -28,12 +28,12 @@
 
     <div id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
         style="display:none; position:fixed; inset:0; z-index:51; place-items:center; padding:1rem;">
-    <article class="card" style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative">
-        <button id="modal-close" class="btn" type="button"
-                style="position:absolute; top:.6rem; right:.6rem">Close</button>
-        <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
-        <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
-        <p id="modal-bio" class="meta" style="white-space:pre-wrap"></p>
+    <article class="card"
+      style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative;
+            max-height:calc(96vh - 2rem); overflow:auto;
+            background:#111; /* solid background for readability */
+            box-shadow:0 12px 40px rgba(0,0,0,.5);
+            border:1px solid var(--border);">
     </article>
     </div>
 
@@ -108,7 +108,6 @@
 
     try {
         const snap = await db.collection('profiles')
-        .where('visibility', '==', true)
         .where('approved', '==', true)
         .limit(100)
         .get();
@@ -123,6 +122,8 @@
             ...(Array.isArray(p.areas) ? p.areas.map(a => '#'+a) : [])
         ].filter(Boolean).join(' ');
 
+        const email = p.email || '';
+
         const card = document.createElement('article');
         card.className = 'card event';
         card.tabIndex = 0; // focusable for keyboard users
@@ -135,7 +136,7 @@
         `;
 
         // Click/Enter opens modal
-        const open = () => openProfileModal({ name, tags, bio: p.bio || '' });
+        const open = () => openProfileModal({ name, tags, bio: p.bio || '', email });
         card.addEventListener('click', open);
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
@@ -159,22 +160,30 @@
 
     let lastFocus = null;
 
-    function openProfileModal({ name, tags, bio }) {
-    lastFocus = document.activeElement;
+    function openProfileModal({ name, tags, bio, email }) {
+      lastFocus = document.activeElement;
 
-    // Fill content
-    document.getElementById('modal-title').textContent = name;
-    document.getElementById('modal-tags').textContent = tags || '';
-    document.getElementById('modal-bio').textContent = bio || '';
+      document.getElementById('modal-title').textContent = name;
+      document.getElementById('modal-tags').textContent = tags || '';
+      document.getElementById('modal-bio').textContent = bio || '';
 
-    // Show
-    document.getElementById('modal-backdrop').style.display = 'block';
-    const modal = document.getElementById('profile-modal');
-    modal.style.display = 'grid';
+      const emailEl = document.getElementById('modal-email');
+      if (email) {
+        emailEl.textContent = email;                 // safe (textContent)
+        emailEl.href = `mailto:${encodeURIComponent(email)}`;
+        emailEl.style.display = 'inline-block';
+      } else {
+        emailEl.textContent = '';
+        emailEl.removeAttribute('href');
+        emailEl.style.display = 'none';
+      }
 
-    // Focus the close button for accessibility
-    document.getElementById('modal-close').focus();
+      document.getElementById('modal-backdrop').style.display = 'block';
+      const modal = document.getElementById('profile-modal');
+      modal.style.display = 'grid';
+      document.getElementById('modal-close').focus();
     }
+
 
     function closeProfileModal() {
     document.getElementById('modal-backdrop').style.display = 'none';
@@ -189,7 +198,6 @@
     const modalVisible = document.getElementById('profile-modal').style.display !== 'none';
     if (modalVisible && e.key === 'Escape') closeProfileModal();
     });
-
 
   </script>
 </body>

@@ -38,9 +38,17 @@
           <input id="name" type="text" required style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
         </label>
 
-        <label>Bio
-          <textarea id="bio" rows="6" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+        <label>Email
+          <input id="email" type="email" readonly
+                style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);">
         </label>
+        <small class="meta">Your email is visible to signed-in members.</small>
+
+        <label>Bio
+          <textarea id="bio" aria-describedby="bio-counter" rows="6" maxlength="500" placeholder="Short bio…" style="width:100%; padding:.7rem; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.03); color:var(--text);"></textarea>
+          <small id="bio-counter" style="display:block; text-align:right; color:var(--muted)">0 / 500</small>
+        </label>
+
 
         <!-- NEW: Role (single select) -->
         <label>Role
@@ -63,9 +71,6 @@
           </label>
         </fieldset>
 
-        <label style="display:flex; gap:.6rem; align-items:center">
-          <input id="visibility" type="checkbox"> Visible to other members
-        </label>
         <small class="meta">Edits may require admin approval before appearing in Browse.</small>
 
         <div style="display:flex; gap:.6rem; flex-wrap:wrap">
@@ -86,9 +91,9 @@
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
   // Firebase config (unchanged)
   const firebaseConfig = {
     apiKey: "AIzaSyCvF5L5TKBfe3MCe25_0dz-I61VID8rVXg",
@@ -121,6 +126,9 @@
     if (!user) { showOut(); return; }
     showIn();
 
+    const emailInput = document.getElementById('email');
+    if (emailInput) emailInput.value = user.email || '';
+
     const ref = db.collection('profiles').doc(user.uid);
     document.getElementById('signout').onclick = () => auth.signOut();
 
@@ -130,7 +138,7 @@
         const p = snap.data();
         document.getElementById('name').value = p.name || '';
         document.getElementById('bio').value = p.bio || '';
-        document.getElementById('visibility').checked = !!p.visibility;
+        updateCounter();
 
         let role = p.role || '';
         let areas = Array.isArray(p.areas) ? p.areas : [];
@@ -150,42 +158,62 @@
     }
 
     document.getElementById('save').addEventListener('click', async () => {
-      setStatus('Saving…');
+      const nameVal = document.getElementById('name').value.trim();
       const role = document.getElementById('role').value;
+      const bioVal = document.getElementById('bio').value.trim();
+      if (!nameVal) { setStatus('Please enter your name.'); return; }
+      if (!role)    { setStatus('Please select your role.'); return; }
+      if (bioVal.length > 500) { setStatus('Bio is too long (max 500 characters).'); return; }
+
+      setStatus('Saving…');
       const areas = Array.from(document.querySelectorAll('input[name="areas"]:checked')).map(cb => cb.value);
 
       const payload = {
-        name: document.getElementById('name').value.trim(),
-        bio: document.getElementById('bio').value.trim(),
+        name: nameVal,
+        bio: bioVal,
         role: role || null,
         areas,
         tags: [role, ...areas].filter(Boolean),
-        visibility: document.getElementById('visibility').checked,
-        approved: false,
+        email: auth.currentUser?.email || null,
+        approved: false, // 👈 force re-review on any change
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
       try {
-        // Transaction to set createdAt only once if doc is new
         await db.runTransaction(async (tx) => {
-            const doc = await tx.get(ref);
-            if (!doc.exists) {
-                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            }
+          const ref = db.collection('profiles').doc(auth.currentUser.uid);
+          const doc = await tx.get(ref);
+          if (!doc.exists) {
+            tx.set(ref, { ...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          } else {
             tx.set(ref, payload, { merge: true });
+          }
         });
         setStatus('Saved. Redirecting…');
-        setTimeout(() => {
-        window.location.assign('/profiles/?updated=1');
-        }, 500);
-
+        setTimeout(() => window.location.assign('/profiles/?updated=1'), 500);
       } catch (err) {
         console.error('Save failed:', err);
-        // Bubble up the real reason – helps diagnose rules/App Check
         setStatus(`Save error: ${err.code || ''} ${err.message || err}`);
       }
     });
   });
+
+  // --- Bio live counter ---
+  const bioEl = document.getElementById('bio');
+  const counterEl = document.getElementById('bio-counter');
+
+  function updateCounter() {
+    const len = bioEl.value.length;
+    counterEl.textContent = `${len} / 500`;
+    counterEl.style.color = (len > 480) ? 'red' : 'var(--muted)';
+  }
+
+  bioEl.addEventListener('input', updateCounter);
+
+  // Initialize counter when loading profile data
+  updateCounter();
+
+
 </script>
 </body>
 </html>
