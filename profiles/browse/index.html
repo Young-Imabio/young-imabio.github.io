@@ -31,9 +31,13 @@
     <article class="card"
       style="max-width:720px; width:min(720px, 96vw); padding:1rem; position:relative;
             max-height:calc(96vh - 2rem); overflow:auto;
-            background:#111; /* solid background for readability */
-            box-shadow:0 12px 40px rgba(0,0,0,.5);
-            border:1px solid var(--border);">
+            background:#111; box-shadow:0 12px 40px rgba(0,0,0,.5); border:1px solid var(--border);">
+      <button id="modal-close" class="btn" type="button"
+              style="position:sticky; top:.6rem; float:right; margin-left:auto;">Close</button>
+      <div class="meta" id="modal-tags" style="margin-right:3rem"></div>
+      <h2 id="modal-title" style="margin:.2rem 0 .6rem 0"></h2>
+      <a id="modal-email" class="meta" style="display:none; margin:0 3rem .4rem 0"></a>
+      <p id="modal-bio" class="meta" style="white-space:pre-wrap; overflow-wrap:anywhere;"></p>
     </article>
     </div>
 
